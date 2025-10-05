@@ -23,6 +23,7 @@
 ### Use Cases of Idea:
 + Users want a place to show their personal books and how they would rank them.
 + Users who want to see how many books they have read so far.
++ Readers can find out which page they are on in the book they are reading.
 
 ### Tech Stack Planned to Use:
 
