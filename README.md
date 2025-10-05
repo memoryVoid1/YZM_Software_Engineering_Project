@@ -7,12 +7,14 @@ It is both unique and perfect for learning web development.
 It will help readers keep track of their reading progress on many different books and also help them show off the books they have read.
 
 Core Features:
-
-
+Ability to create personal profiles.
+Ability to add books to said profile.
+Using user input data to show current progress on individual books.
+Giving users ability to create a place to show off their favourite books.
 
 Potential Users of Idea:
-
-
+Avid Readers
+Book Reviewers
 
 Use Cases of Idea:
 
