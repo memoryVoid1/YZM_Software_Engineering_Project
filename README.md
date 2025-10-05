@@ -28,7 +28,10 @@
 
 * Vue.js + Django + postgreSQL
 
+## Authors
++ Ahmet Doruk Güngör
 
++ Yasin Buğra Tolu
 
 
 
