@@ -11,14 +11,15 @@ Ability to create personal profiles.
 Ability to add books to said profile.
 Using user input data to show current progress on individual books.
 Giving users ability to create a place to show off their favourite books.
+Ability to add personal rankings to books they have entered.
 
 Potential Users of Idea:
 Avid Readers
 Book Reviewers
 
 Use Cases of Idea:
-
-
+Users want a place to show their personal books and how they would rank them.
+Users who want to see how many books they have read so far.
 
 Tech Stack Planned to Use:
 
