@@ -2,6 +2,7 @@
 
 ### The Idea:
 + Detailed book tracker for avid readers.
++ Encouraging more book reading.
 
 
 ### Reason For Chosen Idea:
