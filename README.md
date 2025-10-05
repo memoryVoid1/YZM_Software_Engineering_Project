@@ -2,12 +2,12 @@
 
 ### The Idea:
 + Detailed book tracker for avid readers.
-+ Encouraging more book reading.
 
 
 ### Reason For Chosen Idea:
 + It is both unique and perfect for learning web development. 
 + It will help readers keep track of their reading progress on many different books and also help them show off the books they have read.
++ Encouraging more book reading.
 
 ### Core Features:
 + Ability to create personal profiles.
