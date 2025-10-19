@@ -27,7 +27,7 @@
 
 ### Tech Stack Planned to Use:
 
-* Vue.js + Django + postgreSQL
+* Vue.js + Node.js + postgreSQL
 
 ## Authors
 + Ahmet Doruk Güngör / memoryVoid1
