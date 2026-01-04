@@ -22,7 +22,7 @@
           <input 
             v-model="form.password" 
             type="password" 
-            placeholder="••••••••" 
+            placeholder="" 
             required 
           />
         </div>
@@ -50,13 +50,14 @@ const router = useRouter();
 const form = ref({ username: '', password: '' });
 const errorMessage = ref('');
 const loading = ref(false);
+const API_URL = import.meta.env.VITE_API_URL;
 
 const handleLogin = async () => {
   loading.value = true;
   errorMessage.value = '';
   
   try {
-    const res = await axios.post('http://localhost:3000/api/auth/login', form.value);
+    const res = await axios.post(`${API_URL}/api/auth/login`, form.value);
     
     // Save token AND username for the sidebar
     localStorage.setItem('token', res.data.token);
