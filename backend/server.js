@@ -56,14 +56,13 @@ const BookSchema = new mongoose.Schema({
 const Book = mongoose.model('Book', BookSchema);
 
 // 5. MULTER CONFIGURATION (For File Uploads)
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        // Filename format: avatar-USERID-TIMESTAMP.jpg
-        cb(null, `avatar-${req.user.userId}-${Date.now()}${path.extname(file.originalname)}`);
-    }
+const storage = multer.memoryStorage();
+
+// 3. CONFIGURE UPLOAD WITH LIMITS
+// MongoDB documents have a size limit, so let's restrict images to 5MB
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 const upload = multer({ storage: storage });
 
@@ -125,18 +124,22 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// 🟢 Upload Avatar Route
+
+// 🟢 NEW ROUTE: Upload Avatar (Base64 to Database)
 app.post('/api/auth/avatar', authenticateToken, upload.single('avatar'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-        // Build the public URL (Replace localhost with your domain in production)
-        const imageUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+        // 1. Convert Buffer to Base64 String
+        // This creates a string like: "data:image/jpeg;base64,/9j/4AAQSk..."
+        const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
-        // Save to DB
-        await User.findByIdAndUpdate(req.user.userId, { avatarUrl: imageUrl });
+        // 2. Save the HUGE string directly to MongoDB
+        // We reuse the 'avatarUrl' field, but now it holds data, not a link.
+        await User.findByIdAndUpdate(req.user.userId, { avatarUrl: base64Image });
 
-        res.json({ message: "Avatar updated", avatarUrl: imageUrl });
+        // 3. Send back the data string so frontend can display it immediately
+        res.json({ message: "Avatar updated", avatarUrl: base64Image });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Upload failed" });
