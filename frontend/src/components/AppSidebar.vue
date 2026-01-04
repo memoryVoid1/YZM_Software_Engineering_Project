@@ -1,18 +1,35 @@
 <template>
   <aside class="sidebar">
-    <div class="profile-section clickable" @click="goToCollection">
+    <div class="profile-section clickable" @click="triggerUpload" title="Click to change photo">
       <div class="avatar-container">
         <img 
-          v-if="username"
-          :src="`https://ui-avatars.com/api/?name=${username}&background=d2691e&color=fff`" 
+          v-if="userAvatar" 
+          :src="userAvatar" 
           alt="Profile" 
           class="avatar"
         />
+        <img 
+          v-else-if="username"
+          :src="`https://ui-avatars.com/api/?name=${username}&background=d2691e&color=fff`"
+          alt="Initials"
+          class="avatar"
+        />
         <div v-else class="avatar-placeholder"></div>
+
+        <div v-if="isUploading" class="upload-overlay">⌛</div>
       </div>
       
       <h3 v-if="username" class="username">@{{ username }}</h3>
+      <span class="hint-text" v-if="username">Edit Photo</span>
     </div>
+
+    <input 
+      type="file" 
+      ref="fileInput" 
+      @change="handleFileUpload" 
+      accept="image/*" 
+      style="display: none" 
+    />
 
     <nav class="nav-links">
       <router-link to="/collection" class="nav-item">
@@ -32,19 +49,57 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 
 const router = useRouter();
 const username = ref('');
+const userAvatar = ref('');
+const fileInput = ref(null);
+const isUploading = ref(false);
 
 onMounted(() => {
   const storedUser = localStorage.getItem('username');
-  if (storedUser) {
-    username.value = storedUser;
+  const storedAvatar = localStorage.getItem('avatarUrl');
+  
+  if (storedUser) username.value = storedUser;
+  // Handle case where avatarUrl might be the string "undefined"
+  if (storedAvatar && storedAvatar !== 'undefined' && storedAvatar !== 'null') {
+    userAvatar.value = storedAvatar;
   }
 });
 
-const goToCollection = () => {
-  router.push('/collection');
+const triggerUpload = () => {
+  if (!username.value) return; // Don't trigger if not logged in
+  fileInput.value.click();
+};
+
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  isUploading.value = true;
+  const formData = new FormData();
+  formData.append('avatar', file);
+
+  try {
+    const token = localStorage.getItem('token');
+    const res = await axios.post('http://localhost:3000/api/auth/avatar', formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    // Update State & Storage
+    userAvatar.value = res.data.avatarUrl;
+    localStorage.setItem('avatarUrl', res.data.avatarUrl);
+    alert("Profile picture updated!");
+  } catch (err) {
+    alert("Upload failed.");
+    console.error(err);
+  } finally {
+    isUploading.value = false;
+  }
 };
 
 const logout = () => {
@@ -54,10 +109,9 @@ const logout = () => {
 </script>
 
 <style scoped>
-/* Sidebar Container */
 .sidebar {
   width: 250px;
-  background-color: #3d2b1f; /* Dark Coffee Color */
+  background-color: #3d2b1f;
   color: #ecf0f1;
   display: flex;
   flex-direction: column;
@@ -71,32 +125,36 @@ const logout = () => {
   box-sizing: border-box;
 }
 
-/* Profile Section */
 .profile-section {
-  display: flex;
-  flex-direction: column; /* Stacks items vertically */
-  align-items: center;    /* Centers items horizontally */
-  justify-content: center;
+  text-align: center;
   margin-bottom: 40px;
   padding-bottom: 20px;
   border-bottom: 1px solid rgba(210, 105, 30, 0.3);
-  min-height: 160px;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 .profile-section.clickable {
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background 0.3s;
   border-radius: 8px;
 }
-
 .profile-section.clickable:hover {
   background-color: rgba(210, 105, 30, 0.1);
 }
+.profile-section:hover .hint-text {
+  opacity: 1;
+}
 
 .avatar-container {
-  margin-bottom: 15px; /* Adds space between image and text */
-  display: flex;
-  justify-content: center;
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 10px;
 }
 
 .avatar {
@@ -105,7 +163,6 @@ const logout = () => {
   border-radius: 50%;
   border: 3px solid #d2691e;
   object-fit: cover;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
 .avatar-placeholder {
@@ -116,70 +173,34 @@ const logout = () => {
   background-color: rgba(0,0,0,0.2);
 }
 
+.upload-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  border-radius: 50%;
+  display: flex; justify-content: center; align-items: center;
+  color: white; font-size: 2rem;
+}
+
 .username {
   font-size: 1.2rem;
   color: #d2691e;
   margin: 0;
   font-weight: 600;
-  text-align: center;
-  word-break: break-word; /* Prevents long usernames from breaking layout */
 }
 
-/* Navigation Links */
-.nav-links {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  flex-grow: 1;
+.hint-text {
+  font-size: 0.75rem;
+  color: #a67c52;
+  opacity: 0;
+  transition: opacity 0.3s;
+  margin-top: 5px;
 }
 
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  color: #e0e0e0;
-  padding: 12px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  font-size: 1.1rem;
-}
-
-.nav-item:hover {
-  background-color: #553e2e;
-  color: #fff;
-  transform: translateX(5px);
-}
-
-.nav-item.router-link-active {
-  background-color: #d2691e;
-  color: #fff;
-}
-
-.icon {
-  font-size: 1.3rem;
-}
-
-/* Logout Button */
-.logout-section {
-  margin-top: auto;
-}
-
-.btn-logout {
-  background: transparent;
-  border: 1px solid #d2691e;
-  color: #d2691e;
-  padding: 12px;
-  width: 100%;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: bold;
-  font-size: 1rem;
-}
-
-.btn-logout:hover {
-  background: #d2691e;
-  color: #fff;
-}
+.nav-links { display: flex; flex-direction: column; gap: 15px; flex-grow: 1; }
+.nav-item { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #e0e0e0; padding: 12px; border-radius: 8px; transition: 0.3s; }
+.nav-item:hover, .nav-item.router-link-active { background-color: #553e2e; color: #fff; }
+.btn-logout { background: transparent; border: 1px solid #d2691e; color: #d2691e; padding: 10px; width: 100%; border-radius: 6px; cursor: pointer; margin-top: auto; font-weight: bold; }
+.btn-logout:hover { background: #d2691e; color: #fff; }
 </style>

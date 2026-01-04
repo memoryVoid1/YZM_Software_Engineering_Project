@@ -5,131 +5,230 @@ const cors = require('cors');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const NodeCache = require('node-cache');
-const searchCache = new NodeCache({ stdTTL: 3600 });
 
+// 1. INITIALIZE APP
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'bookjourney_secret_2025';
+const JWT_SECRET = process.env.JWT_SECRET || 'bookjourney_secret_key';
 
+// 2. MIDDLEWARE
 app.use(cors());
 app.use(express.json());
 
-// Database Connection
+// 🟢 NEW: Serve 'uploads' folder publicly so the frontend can display images
+if (!fs.existsSync('./uploads')) {
+    fs.mkdirSync('./uploads');
+}
+app.use('/uploads', express.static('uploads'));
+
+// 3. DATABASE CONNECTION
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => console.error('❌ DB Connection Error:', err));
+    .then(() => console.log('✅ Connected to MongoDB'))
+    .catch(err => console.error('❌ DB Error:', err));
 
-// Models
-const User = mongoose.model('User', new mongoose.Schema({
+// 4. DATA MODELS
+
+// User Model (Updated with avatarUrl)
+const UserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
-    password: { type: String, required: true }
-}));
+    password: { type: String, required: true },
+    avatarUrl: { type: String, default: '' } // 🟢 New Field
+});
+const User = mongoose.model('User', UserSchema);
 
-const Book = mongoose.model('Book', new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    title: String,
-    author: String,
-    coverUrl: String,
-    status: { type: String, default: 'To Read' },
-    rating: { type: Number, default: 0 },
+// Book Model
+const BookSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    googleBookId: String,
+    title: { type: String, required: true },
+    author: { type: String },
+    coverUrl: { type: String },
+    status: { type: String, enum: ['To Read', 'Reading', 'Read'], default: 'To Read' },
+    rating: { type: Number, default: 0, min: 0, max: 5 },
     comment: { type: String, default: '' }
-}));
+});
+const Book = mongoose.model('Book', BookSchema);
 
-// Auth Middleware
+// 5. MULTER CONFIGURATION (For File Uploads)
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        // Filename format: avatar-USERID-TIMESTAMP.jpg
+        cb(null, `avatar-${req.user.userId}-${Date.now()}${path.extname(file.originalname)}`);
+    }
+});
+const upload = multer({ storage: storage });
+
+// 6. AUTH MIDDLEWARE
 const authenticateToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return res.status(401).json({ error: "Unauthorized" });
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).json({ error: "Forbidden" });
-        req.user = user;
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.status(401).json({ error: "Access denied" });
+
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+        if (err) return res.status(403).json({ error: "Invalid token" });
+        req.user = decoded; // { userId: '...', username: '...' }
         next();
     });
 };
 
-// Auth Routes
+// ================= ROUTES =================
+
+// --- AUTHENTICATION ---
+
+// Register
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
-        const user = new User({ username: req.body.username, password: hashedPassword });
-        await user.save();
-        res.status(201).json({ message: "Registered" });
-    } catch (err) { res.status(400).json({ error: "User already exists" }); }
+        const { username, password } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({ username, password: hashedPassword });
+        await newUser.save();
+        res.status(201).json({ message: "Registered successfully" });
+    } catch (err) {
+        res.status(400).json({ error: "Username already exists" });
+    }
 });
 
+// Login (Updated to return avatarUrl)
 app.post('/api/auth/login', async (req, res) => {
-    const user = await User.findOne({ username: req.body.username });
-    if (user && await bcrypt.compare(req.body.password, user.password)) {
-        const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET);
-        res.json({ token, username: user.username });
-    } else { res.status(401).json({ error: "Invalid credentials" }); }
+    try {
+        const { username, password } = req.body;
+        const user = await User.findOne({ username });
+        
+        if (user && await bcrypt.compare(password, user.password)) {
+            const token = jwt.sign(
+                { userId: user._id, username: user.username }, 
+                JWT_SECRET, 
+                { expiresIn: '24h' }
+            );
+            
+            // 🟢 Send avatarUrl back so frontend can cache it immediately
+            res.json({ 
+                token, 
+                username: user.username,
+                avatarUrl: user.avatarUrl 
+            });
+        } else {
+            res.status(401).json({ error: "Invalid credentials" });
+        }
+    } catch (err) {
+        res.status(500).json({ error: "Server error" });
+    }
 });
 
-// Book Routes
+// 🟢 Upload Avatar Route
+app.post('/api/auth/avatar', authenticateToken, upload.single('avatar'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+        // Build the public URL (Replace localhost with your domain in production)
+        const imageUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+
+        // Save to DB
+        await User.findByIdAndUpdate(req.user.userId, { avatarUrl: imageUrl });
+
+        res.json({ message: "Avatar updated", avatarUrl: imageUrl });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Upload failed" });
+    }
+});
+
+// --- SEARCH (Google Books Proxy) ---
+const searchCache = new NodeCache({ stdTTL: 3600 }); // Cache for 1 hour
+
 app.get('/api/search', async (req, res) => {
     const query = req.query.query;
     if (!query) return res.status(400).json({ error: "Query required" });
 
-    // 1. Check Cache First
-    // If we have searched for this recently, return the stored result instantly.
+    // Check Cache
     if (searchCache.has(query)) {
-        console.log(`⚡ Serving '${query}' from Cache`); // Log for debugging
         return res.json(searchCache.get(query));
     }
 
-    // 2. If not in cache, ask Google
     try {
-        const apiKey = process.env.GOOGLE_API_KEY;
-        const url = `https://www.googleapis.com/books/v1/volumes?q=${query}&key=${apiKey}`;
+        // Use API Key if available in .env, otherwise public access
+        const apiKeyParam = process.env.GOOGLE_API_KEY ? `&key=${process.env.GOOGLE_API_KEY}` : '';
+        const url = `https://www.googleapis.com/books/v1/volumes?q=${query}${apiKeyParam}`;
         
         const response = await axios.get(url);
         const books = response.data.items || [];
-
-        // 3. Save result to Cache
-        searchCache.set(query, books);
-        console.log(`🌐 Fetched '${query}' from Google API`);
         
+        searchCache.set(query, books);
         res.json(books);
     } catch (err) {
-        // Handle Google Rate Limits gracefully
-        if (err.response && err.response.status === 429) {
-            console.error("⚠️ Google API Rate Limit Hit");
-            return res.status(429).json({ error: "Too many requests. Please try again later." });
-        }
         res.status(500).json({ error: "Search failed" });
     }
 });
 
-app.post('/api/books/add', authenticateToken, async (req, res) => {
-    const book = new Book({ ...req.body, userId: req.user.userId });
-    await book.save();
-    res.status(201).json(book);
-});
+// --- COLLECTION MANAGEMENT ---
 
-app.get('/api/books/rankings', authenticateToken, async (req, res) => {
-    const books = await Book.find({ userId: req.user.userId }).sort({ rating: -1 });
-    res.json(books);
-});
-
-// UPDATE: Crucial for saving changes
-app.patch('/api/books/:id', authenticateToken, async (req, res) => {
+// Get My Books
+app.get('/api/books', authenticateToken, async (req, res) => {
     try {
-        const { status, rating, comment } = req.body;
-        const updatedBook = await Book.findOneAndUpdate(
-            { _id: req.params.id, userId: req.user.userId },
-            { status, rating, comment },
-            { new: true }
-        );
-        if (!updatedBook) return res.status(404).json({ error: "Book not found" });
-        res.json(updatedBook);
+        const books = await Book.find({ userId: req.user.userId });
+        res.json(books);
     } catch (err) {
-        res.status(500).json({ error: "Database update failed" });
+        res.status(500).json({ error: "Fetch failed" });
     }
 });
 
-app.delete('/api/books/:id', authenticateToken, async (req, res) => {
-    await Book.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
-    res.json({ message: "Deleted" });
+// Add Book
+app.post('/api/books/add', authenticateToken, async (req, res) => {
+    try {
+        const newBook = new Book({
+            ...req.body,
+            userId: req.user.userId // Link to logged-in user
+        });
+        await newBook.save();
+        res.status(201).json(newBook);
+    } catch (err) {
+        res.status(500).json({ error: "Add failed" });
+    }
 });
 
-app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
+// Update Book (Rating, Status, Comments)
+app.patch('/api/books/:id', authenticateToken, async (req, res) => {
+    try {
+        const updatedBook = await Book.findOneAndUpdate(
+            { _id: req.params.id, userId: req.user.userId },
+            req.body,
+            { new: true }
+        );
+        res.json(updatedBook);
+    } catch (err) {
+        res.status(500).json({ error: "Update failed" });
+    }
+});
+
+// Delete Book
+app.delete('/api/books/:id', authenticateToken, async (req, res) => {
+    try {
+        await Book.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
+        res.json({ message: "Deleted" });
+    } catch (err) {
+        res.status(500).json({ error: "Delete failed" });
+    }
+});
+
+// Rankings (Sorted by Rating)
+app.get('/api/books/rankings', authenticateToken, async (req, res) => {
+    try {
+        const books = await Book.find({ userId: req.user.userId }).sort({ rating: -1 });
+        res.json(books);
+    } catch (err) {
+        res.status(500).json({ error: "Fetch rankings failed" });
+    }
+});
+
+// 7. START SERVER
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
