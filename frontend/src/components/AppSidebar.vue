@@ -51,6 +51,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const router = useRouter();
 const username = ref('');
 const userAvatar = ref('');
@@ -83,7 +84,7 @@ const handleFileUpload = async (event) => {
 
   try {
     const token = localStorage.getItem('token');
-    const res = await axios.post('http://localhost:3000/api/auth/avatar', formData, {
+    const res = await axios.post(`${API_URL}/api/auth/login`, formData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'multipart/form-data'
