@@ -18,7 +18,28 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'bookjourney_secret_key';
 
 // 2. MIDDLEWARE
-app.use(cors());
+const cors = require('cors');
+
+// List all domains that are allowed to talk to your backend
+const allowedOrigins = [
+  'http://localhost:5173',                       // Your local frontend
+  'https://your-bookheaven-app.vercel.app'       // <--- REPLACE WITH YOUR ACTUAL VERCEL URL
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      // If the domain is not in the list above, block it
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // 🟢 NEW: Serve 'uploads' folder publicly so the frontend can display images
