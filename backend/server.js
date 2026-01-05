@@ -23,7 +23,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'bookjourney_secret_key';
 // List all domains that are allowed to talk to your backend
 const allowedOrigins = [
   'http://localhost:5173',                       // Your local frontend
-  'https://your-bookheaven-app.vercel.app'       // <--- REPLACE WITH YOUR ACTUAL VERCEL URL
+  'https://yzm-software-engineering-project-git-main-memoryvoid1s-projects.vercel.app'       // <--- REPLACE WITH YOUR ACTUAL VERCEL URL
 ];
 
 app.use(cors({
