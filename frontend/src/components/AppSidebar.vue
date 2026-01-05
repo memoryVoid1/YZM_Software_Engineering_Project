@@ -84,7 +84,7 @@ const handleFileUpload = async (event) => {
 
   try {
     const token = localStorage.getItem('token');
-    const res = await axios.post(`${API_URL}/api/auth/login`, formData, {
+    const res = await axios.post(`${API_URL}api/auth/avatar`, formData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'multipart/form-data'
