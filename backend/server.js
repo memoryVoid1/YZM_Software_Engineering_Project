@@ -17,8 +17,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'bookjourney_secret_key';
 
-// 2. MIDDLEWARE
-const cors = require('cors');
+
+
 
 // List all domains that are allowed to talk to your backend
 const allowedOrigins = [
