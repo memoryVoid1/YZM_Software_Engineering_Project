@@ -57,7 +57,7 @@ const handleLogin = async () => {
   errorMessage.value = '';
   
   try {
-    const res = await axios.post(`${API_URL}/api/auth/login`, form.value);
+    const res = await axios.post(`${API_URL}/auth/login`, form.value);
     
     // Save token AND username for the sidebar
     localStorage.setItem('token', res.data.token);

@@ -21,12 +21,12 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
-
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const books = ref([]);
 
 onMounted(async () => {
   const token = localStorage.getItem('token');
-  const res = await axios.get('http://localhost:3000/api/books/rankings', {
+  const res = await axios.get(`${API_URL}/books/rankings`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   books.value = res.data;

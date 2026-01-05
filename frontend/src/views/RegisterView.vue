@@ -50,13 +50,14 @@ const router = useRouter();
 const form = ref({ username: '', password: '' });
 const errorMessage = ref('');
 const loading = ref(false);
+const API_URL = import.meta.env.VITE_API_URL;
 
 const handleRegister = async () => {
   loading.value = true;
   errorMessage.value = '';
 
   try {
-    await axios.post('http://localhost:3000/api/auth/register', form.value);
+    await axios.post(`${API_URL}/auth/register`, form.value);
     // On success, go to login page
     alert('Account created! Please log in.');
     router.push('/');
