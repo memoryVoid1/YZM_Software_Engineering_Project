@@ -159,7 +159,7 @@ const fetchLibrary = async () => {
 
   try {
     // 👇 CHANGED: Using the "rankings" endpoint because we know it works!
-    const res = await axios.get(`${API_URL}books/rankings`, getAuthHeader());
+    const res = await axios.get(`${API_URL}api/books/rankings`, getAuthHeader());
     
     // Direct assignment
     userBooks.value = res.data;
