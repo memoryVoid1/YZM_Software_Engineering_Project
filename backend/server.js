@@ -24,7 +24,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'bookjourney_secret_key';
 const allowedOrigins = [
   'http://localhost:5173',                       // Your local frontend
   'https://bookheaven-yzm.vercel.app'
-  'https://yzm-software-engineering-project-git-main-memoryvoid1s-projects.vercel.app'       // <--- REPLACE WITH YOUR ACTUAL VERCEL URL
+  'https://yzm-software-engineering-project-git-main-memoryvoid1s-projects.vercel.app'       
 ];
 
 app.use(cors({
