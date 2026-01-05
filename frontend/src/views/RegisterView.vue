@@ -57,7 +57,7 @@ const handleRegister = async () => {
   errorMessage.value = '';
 
   try {
-    await axios.post(`${API_URL}/auth/register`, form.value);
+    await axios.post(`${API_URL}auth/register`, form.value);
     // On success, go to login page
     alert('Account created! Please log in.');
     router.push('/');

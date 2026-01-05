@@ -159,7 +159,7 @@ const fetchLibrary = async () => {
 
   try {
     // 👇 CHANGED: Using the "rankings" endpoint because we know it works!
-    const res = await axios.get(`${API_URL}/books/rankings`, getAuthHeader());
+    const res = await axios.get(`${API_URL}books/rankings`, getAuthHeader());
     
     // Direct assignment
     userBooks.value = res.data;
@@ -182,7 +182,7 @@ const fetchLibrary = async () => {
 const searchBooks = async () => {
   if (!searchQuery.value) return;
   try {
-    const res = await axios.get(`${API_URL}/search?query=${searchQuery.value}`);
+    const res = await axios.get(`${API_URL}search?query=${searchQuery.value}`);
     searchResults.value = res.data;
   } catch (err) {
     alert("Search failed.");
@@ -205,7 +205,7 @@ const addBook = async (googleBook) => {
   };
 
   try {
-    const res = await axios.post(`${API_URL}/books/add`, newBook, getAuthHeader());
+    const res = await axios.post(`${API_URL}books/add`, newBook, getAuthHeader());
     // Add to local list immediately so you don't have to refresh
     userBooks.value.push(res.data); 
     alert("Book added to library!");
@@ -250,7 +250,7 @@ const saveChanges = async () => {
 const deleteBook = async () => {
   if(!confirm("Remove this book from your library?")) return;
   try {
-    await axios.delete(`${API_URL}/books/${selectedBook.value._id}`, getAuthHeader());
+    await axios.delete(`${API_URL}books/${selectedBook.value._id}`, getAuthHeader());
     // Remove from UI locally
     userBooks.value = userBooks.value.filter(b => b._id !== selectedBook.value._id);
     closeModal();
