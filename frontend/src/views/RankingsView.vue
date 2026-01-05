@@ -26,7 +26,7 @@ const books = ref([]);
 
 onMounted(async () => {
   const token = localStorage.getItem('token');
-  const res = await axios.get(`${API_URL}books/rankings`, {
+  const res = await axios.get(`${API_URL}api/books/rankings`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   books.value = res.data;

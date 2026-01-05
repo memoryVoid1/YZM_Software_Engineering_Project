@@ -205,7 +205,7 @@ const addBook = async (googleBook) => {
   };
 
   try {
-    const res = await axios.post(`${API_URL}books/add`, newBook, getAuthHeader());
+    const res = await axios.post(`${API_URL}api/books/add`, newBook, getAuthHeader());
     // Add to local list immediately so you don't have to refresh
     userBooks.value.push(res.data); 
     alert("Book added to library!");
@@ -228,7 +228,7 @@ const closeModal = () => {
 const saveChanges = async () => {
   try {
     await axios.patch(
-      `${API_URL}/books/${selectedBook.value._id}`, 
+      `${API_URL}api/books/${selectedBook.value._id}`, 
       { 
         status: selectedBook.value.status, 
         rating: selectedBook.value.rating,
@@ -250,7 +250,7 @@ const saveChanges = async () => {
 const deleteBook = async () => {
   if(!confirm("Remove this book from your library?")) return;
   try {
-    await axios.delete(`${API_URL}books/${selectedBook.value._id}`, getAuthHeader());
+    await axios.delete(`${API_URL}api/books/${selectedBook.value._id}`, getAuthHeader());
     // Remove from UI locally
     userBooks.value = userBooks.value.filter(b => b._id !== selectedBook.value._id);
     closeModal();
