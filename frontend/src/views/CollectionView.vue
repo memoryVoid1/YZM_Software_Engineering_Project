@@ -182,7 +182,7 @@ const fetchLibrary = async () => {
 const searchBooks = async () => {
   if (!searchQuery.value) return;
   try {
-    const res = await axios.get(`${API_URL}search?query=${searchQuery.value}`);
+    const res = await axios.get(`${API_URL}api/search?query=${searchQuery.value}`);
     searchResults.value = res.data;
   } catch (err) {
     alert("Search failed.");
